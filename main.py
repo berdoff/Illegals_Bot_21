@@ -556,6 +556,7 @@ try:
                                     if id_store in ["11","12","13","14","15","25"] :
                                         forms_bd=db["forms"]
                                         forms_bd.insert_one({"forma":f"/setgangzone {id_store}","author":id_authora,"status":0})
+                                        forms_bd.insert_one({"forma":"/az","author":id_authora,"status":0})
                                         chat_sender(id,"Форма записана, ожидайте перекраса в течение 30 секунд")
                                     else:
                                         chat_sender(id,"Ошибка. Используйте /gzone [id фракции] \nID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
