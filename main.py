@@ -536,18 +536,33 @@ try:
                         if str(msg).split()[0] == '/gstore':
                             if db_forms.find_one({"user":id_authora})["dostup"]=="1":
                                 if len(str(msg).split())>1:
+                                    print(str(msg).split())
                                     id_store=norm_msg.split()[1].strip()
                                     if id_store in ["11","12","13","14","15","25"] :
                                         forms_bd=db["forms"]
                                         forms_bd.insert_one({"forma":f"/addorgmats {id_store}","author":id_authora,"status":0})
                                         chat_sender(id,"Форма записана, ожидайте пополнения в течение 30 секунд")
                                     else:
-                                        chat_sender(id,"Ошибка. ID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
+                                        chat_sender(id,"Ошибка. Используйте /gstore [id фракции] \nID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
                                 else:
-                                    chat_sender(id,"Ошибка. ID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
+                                    chat_sender(id,"Ошибка. Используйте /gstore [id фракции] \nID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
                             else:
                                 chat_sender(id,"Отсутствует доступ")
 
+                        if str(msg).split()[0] == '/gzone':
+                            if db_forms.find_one({"user":id_authora})["dostup"]=="1":
+                                if len(str(msg).split())>1:
+                                    id_store=norm_msg.split()[1].strip()
+                                    if id_store in ["11","12","13","14","15","25"] :
+                                        forms_bd=db["forms"]
+                                        forms_bd.insert_one({"forma":f"/setgangzone {id_store}","author":id_authora,"status":0})
+                                        chat_sender(id,"Форма записана, ожидайте перекраса в течение 30 секунд")
+                                    else:
+                                        chat_sender(id,"Ошибка. Используйте /gzone [id фракции] \nID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
+                                else:
+                                    chat_sender(id,"Ошибка. Используйте /gzone [id фракции] \nID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
+                            else:
+                                chat_sender(id,"Отсутствует доступ")
 
                         if str(msg).split()[0] == '/game' and id==16:
                             if db_forms.count_documents({"user":id_authora})!=0:
