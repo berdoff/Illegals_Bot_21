@@ -1,6 +1,6 @@
 import vk_api
 from vk_api.bot_longpoll import VkBotEventType, VkBotLongPoll
-from config import tok,str_token,main_str_token,ip_token,mongo,berdoff_token,seraph_token
+from config import tok,str_token,main_str_token,ip_token,mongo,berdoff_token,seraph_token,ghetto_gz
 from random import randint
 import json
 import datetime
@@ -30,7 +30,7 @@ gos=db["GOS_21"]
 archive_gos=db["GOS_ARCHIVE_21"]
 db_forms=db["forms"]
 rakbots_dostup=db["RAKBOT_DOSTUP"]
-
+loggs=db["logs"]
 sled_kf=[12,6,1]
 obzvon_kf=[13,14]
 go_adm_kf=[15]
@@ -102,7 +102,7 @@ def get_online(nick,type,author_nick):
         print(kd.seconds)
         if kd.days<=-1 or type==0:
             header = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Atom/13.0.0.44 Safari/537.36'}
-            a = requests.get("http://berdoff.ru/getonline",data={"token": berdoff_token, "nick": nick,"server":"21"}).text
+            a = requests.get("https://berdoff.ru/getonline",data={"token": berdoff_token, "nick": nick,"server":"21"}).text
             print(a)
             online=json.loads(a)
             text_online='⏳ '+nick+' ⏳'+'\n'+'\n'
@@ -153,7 +153,7 @@ def get_online_lw(nick, type, author_nick):
     if kd.days <= -1 or type == 0:
         header = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Atom/13.0.0.44 Safari/537.36'}
-        a= requests.get("http://berdoff.ru/getonline",data={"token":berdoff_token,"nick":nick}).text
+        a= requests.get("https://berdoff.ru/getonline",data={"token":berdoff_token,"nick":nick}).text
         print(a)
         online = json.loads(a)
         text_online = '⏳ ' + nick + ' ⏳' + '\n' + '\n'
@@ -292,6 +292,13 @@ def add_kf(vk,frac_id,role,frac,nick):
     if role=="Заместитель" and frac_id in mafia_frac:
         add_mafii_zam_konf(vk,nick)
 
+
+def del_konf(user_id,kf):
+        try:
+            vk_session.method('messages.removeChatUser',{'chat_id':kf,'user_id':user_id})
+        except:
+            pass
+
 def del_ghetto_zam_konf(user_id):
         try:
             session.method('messages.removeChatUser',{'chat_id':74,'user_id':user_id})
@@ -320,7 +327,7 @@ def del_ghetto_leader_konf(user_id):
     except:
         pass
     try:
-        session.method('messages.removeChatUser',{'chat_id':72,'user_id':user_id})
+        session.method('messages.removeChatUser',{'chat_id':190,'user_id':user_id})
     except:
         pass
 def del_leader_mafii_konf(user_id):
@@ -424,7 +431,7 @@ print("Bot started")
 
 
 ghetto_frac=[11,12,13,14,15,25]
-mafia_frac=[16,17,18,19]
+mafia_frac=[16,17,18,19,101]
 
 name_fracs1={
     "11":"Grove Street",
@@ -436,7 +443,8 @@ name_fracs1={
     "17":"Yakuza",
     "18":"La Cosa Nostra",
     "19":"Warlock MC",
-    "25":"Night Wolfs"
+    "25":"Night Wolfs",
+    "101":"Tierra Robada Bikers"
     
 }
 
@@ -455,13 +463,22 @@ vigs_cf={
     17:5,
     18:5,
     19:5,
-    25:19
+    25:19,
+    101:5
 }
 
 
 
 try:
     for event in longpoll.listen():
+            if event.type == VkBotEventType.MESSAGE_NEW and (action := event.obj['message'].get('action')):
+                if action['type'] == 'chat_kick_user':
+                    print(event.chat_id)
+                    print(action)
+                    try:
+                        del_konf(action['member_id'],event.chat_id)
+                    except:
+                        pass
             if event.type == VkBotEventType.MESSAGE_NEW:
                 try:
                     id_authora=str(event.object.message['from_id'])
@@ -549,6 +566,78 @@ try:
                             else:
                                 chat_sender(id,"Отсутствует доступ")
 
+                        if str(msg).split()[0] == '/кик':
+                            if db_forms.find_one({"user":id_authora})["dostup"]=="1":
+                                if len(str(msg).split())>1:
+                                    id_user=get_id_by_tag(norm_msg.split()[1].strip())
+                                    del_konf(id_user,id)
+                                else:
+                                    chat_sender(id,"Используйте /кик <@tag>")
+                            else:
+                                chat_sender(id,"Отсутствует доступ")
+
+                        if str(msg).split()[0] == '/bizlist':
+                            """
+                            if db_forms.find_one({"user":id_authora})["dostup"]=="1":
+                                if len(str(msg).split())>1:
+                                    id_frac=norm_msg.split()[1].strip()
+                                    if id_frac in ["16","17","18","19"] :
+                                        if id_frac=="16":
+                                            id_frac="rm"
+                                        elif id_frac=="17":
+                                            id_frac="yakuza"
+                                        elif id_frac=="18":
+                                            id_frac="lcn"
+                                        else:
+                                            id_frac="wmc"
+                                        bizlist=loggs.find_one({"type":"biz"})[id_frac]                        
+                                        bizlist="\n".join(bizlist.replace("\\t"," ").replace("{FFFFFF}","").replace("[\"{FFB23E}Бизнес {FFB23E}Прибыль {FFB23E}Крыша","").replace("[»] {CCCCCC}Следующая страница","").replace("\"]","").split("\\n"))
+                                        chat_sender(id,bizlist)
+                                    else:
+                                        chat_sender(id,"Ошибка. Используйте /bizlist [id фракции] \nID Фракций:\n\nRussian Mafia: 16\nYakuza: 17\nLa Cosa Nostra: 18\nWarlock MC: 19")
+                                else:
+                                    chat_sender(id,"Ошибка. Используйте /bizlist [id фракции] \nID Фракций:\n\nRussian Mafia: 16\nYakuza: 17\nLa Cosa Nostra: 18\nWarlock MC: 19")
+                            else:
+                                chat_sender(id,"Отсутствует доступ")
+                            """
+                            chat_sender(id,"Команда отключена")
+
+
+                        if str(msg).split()[0] == '/mbiz':
+                            """
+                            if db_forms.find_one({"user":id_authora})["dostup"]=="1":
+                                if len(str(msg).split())>2:
+                                    id_store=norm_msg.split()[1].strip()
+                                    id_biz=norm_msg.split()[2].strip().split(",")
+                                    if id_store in ["16","17","18","19"] :
+                                        for i in id_biz:
+                                            forms_bd=db["forms"]
+                                            forms_bd.insert_one({"forma":f"/setbizmafia {i} {id_store}","author":id_authora,"status":0})
+                                        forms_bd.insert_one({"forma":"/az","author":id_authora,"status":0})
+                                        chat_sender(id,"Форма записана, ожидайте выдачи в течение 30 секунд")
+                                    else:
+                                        chat_sender(id,"Ошибка. Используйте /mbiz [id фракции] [id бизнеса/бизнесов через запятую]\nID Фракций:\n\nRussian Mafia: 16\nYakuza: 17\nLa Cosa Nostra: 18\nWarlock MC: 19")
+                                else:
+                                    chat_sender(id,"Ошибка. Используйте /mbiz [id фракции] [id бизнеса/бизнесов через запятую]\nID Фракций:\n\nRussian Mafia: 16\nYakuza: 17\nLa Cosa Nostra: 18\nWarlock MC: 19")
+                            else:
+                                chat_sender(id,"Отсутствует доступ")
+                            """
+                            chat_sender(id,"Команда отключена")
+
+                        
+                        if str(msg).split()[0] == '/uvaloff':
+                            if db_forms.find_one({"user":id_authora})["dostup"]=="1":
+                                if len(str(msg).split())==2:
+                                    id_user=norm_msg.split()[1].strip()
+                                    forms_bd=db["forms"]
+                                    forms_bd.insert_one({"forma":f"/uvaloff {id_user}","author":id_authora,"status":0})
+                                    chat_sender(id,"Форма записана, ожидайте выдачи в течение 30 секунд")
+                                else:
+                                    chat_sender(id,"Ошибка. Используйте /uvaloff [nick]")
+                            else:
+                                chat_sender(id,"Отсутствует доступ")
+
+
                         if str(msg).split()[0] == '/gzone':
                             if db_forms.find_one({"user":id_authora})["dostup"]=="1":
                                 if len(str(msg).split())>1:
@@ -564,6 +653,34 @@ try:
                                     chat_sender(id,"Ошибка. Используйте /gzone [id фракции] \nID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
                             else:
                                 chat_sender(id,"Отсутствует доступ")
+
+                        if str(msg).split()[0] == '/gzoneid':
+                            if db_forms.find_one({"user":id_authora})["dostup"]=="1":
+                                if len(str(msg).split())>2:
+                                    id_store=norm_msg.split()[1].strip()
+                                    id_terr=norm_msg.split()[2].strip()
+                                    if id_store in ["11","12","13","14","15","25"] :
+                                        forms_bd=db["forms"]
+                                        forms_bd.insert_one({"forma":f"/gc "+ghetto_gz[id_terr][0]+" "+ghetto_gz[id_terr][1]+" "+ghetto_gz[id_terr][2],"author":id_authora,"status":0})
+                                        forms_bd.insert_one({"forma":f"/setgangzone {id_store}","author":id_authora,"status":0})
+                                        forms_bd.insert_one({"forma":"/az","author":id_authora,"status":0})
+                                        chat_sender(id,"Форма записана, ожидайте перекраса в течение 30 секунд")
+                                    else:
+                                        chat_sender(id,"Ошибка. Используйте /gzoneid [id фракции] [id терры]\nID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
+                                else:
+                                    chat_sender(id,"Ошибка. Используйте /gzone [id фракции] [id терры]\nID Фракций:\n\nGrove: 11\nVagos: 12\nBallas: 13\nAztec: 14\nRifa: 15\nNight Wolfs: 25")
+                            else:
+                                chat_sender(id,"Отсутствует доступ")
+
+                        if str(msg).split()[0]=='/setfrac' and id==1:
+                            nick=norm_msg.split()[1]
+                            frac_id=norm_msg.split()[2]
+                            user=collection.find_one({"nick":nick})
+                            old_frac=user["frac"]
+                            old_frac_id=user["frac_id"]
+                            new_frac=name_fracs1[frac_id]
+                            collection.update_one({"nick":nick},{"$set":{"frac_id":int(frac_id),"frac":name_fracs1[frac_id]}})
+                            chat_sender(id,f"✅Пользователю {nick} успешно изменена фракция с {old_frac}[{old_frac_id}] на {new_frac}[{frac_id}]")
 
                         if str(msg).split()[0] == '/game' and id==16:
                             if db_forms.count_documents({"user":id_authora})!=0:
@@ -592,18 +709,7 @@ try:
                                 else:
                                     db_forms.insert_one({"user":id_user,"dostup":dostup})
                                     chat_sender(id,"Доступ изменен")
-
-                        if str(msg).split()[0] == '/dr' and id==17:
-                                id_user=get_id_by_tag(str(msg).split()[1])
-                                dostup=str(msg).split()[3]
-                                nick=norm_msg.split()[2]
-                                if rakbots_dostup.count_documents({"vk":id_user})!=0:
-                                    rakbots_dostup.delete_one({"vk":id_user})
-                                    chat_sender(id,"Доступ изменен")
-                                else:
-                                    rakbots_dostup.insert_one({"vk":id_user,"dostup":dostup,"nick":nick})
-                                    chat_sender(id,"Доступ изменен")
-                                
+                     
 
                         if str(msg).split()[0]=='/zams':
                             users=collection.find({"dostup":"0"}).sort("frac_id")
@@ -839,6 +945,7 @@ try:
                             /litrbol_history [nick] история основных баллов лидера
                             /editbalance [nick] [+/- количество] [причина] - изменить баланс лидеру
                             /balance_history [nick] - история изменений баланса лидера
+                            /freeze [id_frac] [кол-во часов/0 если снять] - Выдать мороз банде
                             /tagfrac - ид фракций
                             /l_add - форма на постановление лидера/зама
                             /l_del [nick] [причина] - снять лидера
@@ -851,7 +958,8 @@ try:
                             /mafiiobzvon - генерирует вопросы для обзвона на мафию
                             /voprrp - все вопросы в базе данных для рп банд
                             /voprnrp - все вопросы в базе данных для нрп банд
-                            /voprmafii - все вопросы в базе данных для мафий"""
+                            /voprmafii - все вопросы в базе данных для мафий
+                            Дополнительные команды с доступом: /gzone,/gzoneid,/gstore,/bizlist,/mbiz"""
                             chat_sender(id,helpp)
                         if str(msg).split()[0]=='/help':
                             chat_sender(id,"""Доступны команды:
@@ -860,6 +968,8 @@ try:
 /zams - cписок замов 
 /zamdel nick - кикнуть 9-ку из конф
 /zamadd [@tag] [nick] - добавить 9-ку в кф
+/capture [id_frac] [кол-во минут до капта] - забить капт другой банде
+/otkaz - взять отказ на час
 /info (@tag или Ni_Ck) - информация о человеке
 /myonl - узнать свой онлайн(временно недоступна)
 /shop - магазин для лидеров мафий""")
@@ -893,6 +1003,76 @@ try:
                             nick=norm_msg.split()[1]
                             user=collection.find_one({"nick":nick})
                             add_kf(user["id_vk"],user["frac_id"],user["rank"],user["frac"],nick)
+                        
+                        if str(msg).split()[0] == '/freeze' and id in sled_kf:
+                            try:
+                                collection.update_one({"dostup":"1","frac_id":int(str(msg).split()[1])},{"$set":{"moroz_time":int(str(time.time()).split(".")[0])+(int(str(msg).split()[2])*3600)}})
+                                chat_sender(id,"Фракции "+name_fracs1[str(msg).split()[1]]+" выдан мороз на "+str(msg).split()[2]+"ч")
+                                chat_sender(vigs_cf[int(str(msg).split()[1])],f"✅Лидеру "+name_fracs1[str(msg).split()[1]]+f" выдан мороз @id{id_authora}(администратором) на "+str(msg).split()[2]+"ч")
+                        
+                            except:
+                                chat_sender(id,"Используйте /freeze id_frac часы")
+                        
+
+                        if str(msg).split()[0] == '/otkaz' and id==10:
+                            if int(collection.find_one({"id_vk":id_authora})["dostup"])>=0:
+                                frac_id=collection.find_one({"id_vk":id_authora})["frac_id"]
+                                if collection.find_one({"frac_id":frac_id,"dostup":"1"})["get_otkazi"]==1:
+                                    if collection.find_one({"frac_id":frac_id,"dostup":"1"})["otkazi"]<2:
+                                        collection.update_one({"frac_id":frac_id,"dostup":"1"},{"$set":{"get_otkazi":0,"moroz_time":int(str(time.time()).split(".")[0]),"otkazi":collection.find_one({"frac_id":frac_id,"dostup":"1"})["otkazi"]+1}})
+                                        chat_sender(id,name_fracs1[str(frac_id)]+" взяла отказ. Выдан мороз системой на час")
+                                    else:
+                                        chat_sender(id,"Вы уже использовали 2 отказа за сегодня")
+                                else:
+                                    chat_sender(id,"Вашей банде в данный момент не забит капт")
+                        if str(msg).split()[0] == '/capture' and id==10:
+                            try:
+                                id_frac=str(msg).split()[1]
+                                minutes=str(msg).split()[2]
+                                max_minute=collection.find_one({"type":"cfg"})["max_minute"]
+                                min_minute=collection.find_one({"type":"cfg"})["min_minute"]
+                                if int(collection.find_one({"id_vk":id_authora})["dostup"])>=0:
+                                    if min_minute<=int(minutes)<=max_minute:
+                                        if collection.count_documents({"frac_id":int(id_frac),"dostup":"1"})!=0:
+                                            if str(collection.find_one({"id_vk":id_authora})["frac_id"])!=id_frac:
+                                                active_capts=False
+                                                for i in collection.find({"dostup":"1"}):
+                                                    if i["frac_id"] in ghetto_frac:
+                                                        if i["active_capt"]==1:
+                                                            active_capts=True
+                                                            break
+                                                if not active_capts:
+                                                    print("+")
+                                                    print(int(str(time.time()).split(".")[0])-collection.find_one({"frac_id":int(id_frac),"dostup":"1"})["moroz_time"])
+                                                    if int(str(time.time()).split(".")[0])-collection.find_one({"frac_id":int(id_frac),"dostup":"1"})["moroz_time"]>3600:
+                                                        time_capt=datetime.datetime.now()+datetime.timedelta(minutes=int(minutes))
+                                                        print("+")
+                                                        capture_msg="Вам забили капт от "+name_fracs1[str(collection.find_one({"id_vk":id_authora})["frac_id"])]+" на "+str(time_capt.hour)+":"+str(time_capt.minute)+"\n"
+                                                        for i in collection.find({"frac_id":int(id_frac)}):
+                                                            capture_msg+="@id"+i["id_vk"]+" "
+                                                            print("+")
+                                                        Alert(id,capture_msg)
+                                                        collection.update_one({"dostup":"1","frac_id":int(id_frac)},{"$set":{"get_otkazi":1}})
+                                                    else:
+                                                        chat_sender(id,"У банды "+name_fracs1[str(id_frac)]+" мороз")
+                                            
+                                                else:
+                                                    chat_sender(id,"В данный момент уже идет капт")
+                                            else:
+                                                chat_sender(id,"Нельзя забить капт самому себе")                        
+                                        else:
+                                            chat_sender(id,"У данной фракции нет лидера")
+                                    else:
+                                        chat_sender(id,f"Указано неверное время({min_minute}-{max_minute} минут)")
+
+                                else:
+                                    chat_sender(id,"У вас нет доступа к забивам")
+                            except:
+                                chat_sender(id,"Используйте /capture [id_frac] [через сколько минут капт] \n\n🔍Grove »»» 11\n🔍Vagos »»» 12\n🔍Ballas »»» 13\n🔍Aztecas »»» 14\n🔍Rifa »»» 15\n🔍Russian Mafia »»» 16\n🔍Yakuza »»» 17\n🔍La Cosa Nostra »»» 18\n🔍Warlock MC »»» 19\n🔍Night Wolfs »»» 25\n🔍Tierra Robada Bikers »»» 101")
+
+
+
+
 
                         if str(msg).split()[0] == '/zamadd':
                             if "_" in str(msg):
@@ -900,23 +1080,26 @@ try:
                                     frac_id=collection.find_one({"id_vk":id_authora})["frac_id"]
                                     nick=norm_msg.split()[2]
                                     id_vk=get_id_by_tag(str(msg).split()[1])
-                                    if collection.count_documents({"nick":nick})==0 and collection.count_documents({"id_vk":id_vk})==0:
-                                        print(frac_id)
-                                        if collection.find_one({"id_vk":id_authora})["dostup"]=="1":
-                                            today_date=datetime.datetime.today()
-                                            date_today=str(today_date.day)+'.'+str(today_date.month)+'.'+str(today_date.year)
-                                            srok_data=today_date+datetime.timedelta(days=30)
-                                            srok_data=str(srok_data.day)+'.'+str(srok_data.month)+'.'+str(srok_data.year)
-                                            frac=name_fracs1[str(frac_id)]
-                                            print(frac)
-                                            
-                                            
-                                            print(nick)
-                                            chat_sender(id,f"@id{id_vk}({nick})<br>📝Должность: Заместитель<br>📝Фракция:{frac}")
-                                            add_kf(id_vk,frac_id,"Заместитель",frac,nick)
-                                            collection.insert_one({"nick":nick,"vozrast":"15","frac":frac,"dostup":"0","rank":"Заместитель","type_add":"АБ","id_vk":id_vk,"frac_id":frac_id,"vigs":0,"preds":0,"warn_history":"","add_data":date_today,"srok_data":srok_data,"days_history":"","main_balls":0,"main_balls_history":""})
+                                    if str(id_vk)!="519824619":
+                                        if collection.count_documents({"nick":nick})==0 and collection.count_documents({"id_vk":id_vk})==0:
+                                            print(frac_id)
+                                            if collection.find_one({"id_vk":id_authora})["dostup"]=="1":
+                                                today_date=datetime.datetime.today()
+                                                date_today=str(today_date.day)+'.'+str(today_date.month)+'.'+str(today_date.year)
+                                                srok_data=today_date+datetime.timedelta(days=30)
+                                                srok_data=str(srok_data.day)+'.'+str(srok_data.month)+'.'+str(srok_data.year)
+                                                frac=name_fracs1[str(frac_id)]
+                                                print(frac)
+                                                
+                                                
+                                                print(nick)
+                                                chat_sender(id,f"@id{id_vk}({nick})<br>📝Должность: Заместитель<br>📝Фракция:{frac}")
+                                                add_kf(id_vk,frac_id,"Заместитель",frac,nick)
+                                                collection.insert_one({"nick":nick,"vozrast":"15","frac":frac,"dostup":"0","rank":"Заместитель","type_add":"АБ","id_vk":id_vk,"frac_id":frac_id,"vigs":0,"preds":0,"warn_history":"","add_data":date_today,"srok_data":srok_data,"days_history":"","main_balls":0,"main_balls_history":""})
+                                        else:
+                                            chat_sender(id,"Игрок уже является лидером или замом")
                                     else:
-                                        chat_sender(id,"Игрок уже является лидером или замом")
+                                        chat_sender(id,"Бердов не разрешает Феликсу быть замом")
                                 except:
                                     chat_sender(id,"❗Используйте /zamadd [@tag] [nick]")
                             else:
@@ -1007,6 +1190,42 @@ try:
                             chat_sender(id,f"✅Лидеру {nick} изменен баланс @id{id_authora}(администратором) на {edit}$ по причине: {prichina} ")
                             chat_sender(vigs_cf[user["frac_id"]],f"✅Лидеру {nick} изменен баланс @id{id_authora}(администратором) на {edit}$ по причине: {prichina} ")
                         
+                        if str(msg).split()[0]=='/addspec' and int(collection.find_one({"id_vk":id_authora})["dostup"])>=4:
+                            if len(str(msg).split())>=5:
+                                id_vk=get_id_by_tag(norm_msg.split()[1].strip())
+                                nick=norm_msg.split()[2].strip()
+                                dostup=norm_msg.split()[3].strip()
+                                rank=" ".join(norm_msg.split()[4:])
+                                if dostup in ["2","3","4","5","6"]:
+                                    if int(collection.find_one({"id_vk":id_authora})["dostup"])> int(dostup):
+                                        if collection.count_documents({"id_vk":id_vk})==0:
+                                            today_date=datetime.datetime.today()
+                                            date_today=str(today_date.day)+'.'+str(today_date.month)+'.'+str(today_date.year)
+                                            collection.insert_one({"nick":nick,"dostup":dostup,"rank":rank,"id_vk":id_vk,"frac_id":11,"add_data":date_today})
+                                            chat_sender(id,"Новый следящий успешно добавлен")
+                                        else:
+                                            chat_sender(id,"Следящий уже есть в списке пользователей")
+                                    else:
+                                        chat_sender(id,"Нельзя установить доступ больше своего")
+                                else:
+                                    chat_sender(id,"Возможные варианты доступов:\n2 - пгс\n3 - следящий\n 4 - згс/гс\n 5 - гс но\n6 - ещё не придумал")
+                            else:
+                                chat_sender(id,"Используйте /addspec [@тег] [ник] [доступ] [должность]\nВозможные варианты доступов:\n2 - пгс\n3 - следящий\n 4 - згс/гс\n 5 - гс но\n6 - ещё не придумал")
+
+                        if str(msg).split()[0]=='/delspec' and int(collection.find_one({"id_vk":id_authora})["dostup"])>=4:
+                            if len(str(msg).split())==2:
+                                id_vk=get_id_by_tag(norm_msg.split()[2].strip())
+                                if collection.count_documents({"id_vk":id_vk})==0:
+                                    if int(collection.find_one({"id_vk":id_authora})["dostup"])> int(collection.find_one({"id_vk":id_vk})["dostup"]):
+                                        collection.delete_one({"id_vk":id_vk})
+                                        chat_sender(id,"Следящий успешно удален")
+                                    else:
+                                        chat_sender(id,"Нельзя удалить следящего с выше доступом")
+                                else:
+                                    chat_sender(id,"Следящего нет в списке пользователей")
+                            else:
+                                chat_sender(id,"Используйте /delspec [@тег]")
+                            
                         if str(msg).split()[0]=='/buy':
                             user=collection.find_one({"id_vk":id_authora})
                             if (user["rank"]=="Лидер" and user["frac_id"] in mafia_frac) or id in sled_kf:
@@ -1222,6 +1441,7 @@ try:
 🔍La Cosa Nostra »»» 18
 🔍Warlock MC »»» 19
 🔍Night Wolfs »»» 25
+🔍Tierra Robada Bikers »»» 101
 """)
                         if str(msg).split()[0]=='/l_add' and id in sled_kf:
                             chat_sender(id,"""
@@ -1272,7 +1492,7 @@ try:
                                 chat_sender(id,"Косяк в форме")
                             print(1)
                             if collection.count_documents({"id_vk":id_vk})==0:
-                                collection.insert_one({"nick":nick,"vozrast":vozrast,"frac":frac,"dostup":dostup,"rank":role,"type_add":type_add,"id_vk":id_vk,"frac_id":frac_id,"vigs":0,"preds":0,"warn_history":"","add_data":date_today,"srok_data":srok_data,"days_history":"","main_balls":0,"main_balls_history":"","balance":0,"balance_history":""})
+                                collection.insert_one({"nick":nick,"vozrast":vozrast,"frac":frac,"dostup":dostup,"rank":role,"type_add":type_add,"id_vk":id_vk,"frac_id":frac_id,"vigs":0,"preds":0,"warn_history":"","add_data":date_today,"srok_data":srok_data,"days_history":"","main_balls":0,"main_balls_history":"","balance":0,"balance_history":"","active_capt":0,"active_strela":0,"otkazi":0,"get_otkazi":0})
                                 chat_sender(id,f"@id{id_vk}({nick})<br>📝Возраст: {vozrast}<br>📝Должность: {role}<br>📝Фракция:{frac}")
                                 add_kf(id_vk,frac_id,role,frac,nick)
                                 if role.lower()=="лидер":
